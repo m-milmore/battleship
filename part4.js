@@ -116,8 +116,7 @@ function newFleet() {
 
 function locationAlreadyPicked(guesses, location) {
     for (const strike of guesses) {
-        if (strike.coordinates === location)
-            return true;
+        if (strike.coordinates === location) return true;
     }
     return false;
 }
@@ -136,60 +135,101 @@ function Strike(coordinates, hit) {
     this.hit = hit;
 }
 
+function myTurnToStrike() {
+    return rs.question("\nEnter a location to strike ie 'A2' ", {
+            limit: re,
+            limitMessage: "That's not a valid location.",
+        })
+        .toLowerCase();
+}
+
+function computerTurnToStrike(computerGuesses) {
+    let newLocation = false;
+    let coordinates = "";
+    while (!newLocation) {
+        coordinates = String.fromCharCode(97 + getRandomInt(unitGridY)) + (getRandomInt(unitGridX) + 1);
+        if (!locationAlreadyPicked(computerGuesses, coordinates)) {
+            newLocation = true;
+        }
+    }
+    return coordinates;
+}
+
 function playGame() {
     let playAgain = true;
 
     while (playAgain) {
-        const guesses = [];
+        let myGuesses = [];
+        let computerGuesses = [];
+        let myShips = newFleet();
+        let computerShips = newFleet();
         let allBattleshipsDestroyed = false;
-        let fleet = newFleet();
-        console.log(fleet);
-        console.log(utils.printGrid(guesses));
+        let myTurn = false;
+        console.log("Computer'ships", computerShips);
+        console.log(utils.printGrid(myGuesses));
 
         while (!allBattleshipsDestroyed) {
-            const locationToStrike = rs
-                .question("\nEnter a location to strike ie 'A2' ", {
-                    limit: re,
-                    limitMessage: "That's not a valid location.",
-                })
-                .toLowerCase();
+            myTurn = !myTurn;
+            const guesses = myTurn ? myGuesses : computerGuesses;
+            let ships = myTurn ? computerShips : myShips;
+            const locationToStrike = myTurn ? myTurnToStrike() : computerTurnToStrike(computerGuesses);
+            const alreadyPickedMess = myTurn ?
+                "You have already picked this location. Miss!\n" :
+                "The computer already picked this location. Miss!\n";
+            const sunkBattleshipMess = myTurn ?
+                `Hit. You have sunk a battleship. ${computerShips.length - 1} ship(s) remaining.\n` :
+                `Hit. The computer has sunk one of your battleships. ${myShips.length - 1} ship(s) remaining.\n`;
+            const hitMess = myTurn ?
+                "You have hit a battleship!\n" :
+                "The computer has hit one of your battleships!\n";
+            const missMess = myTurn ?
+                "You have missed!\n" :
+                "The computer has missed!\n";
 
             if (locationAlreadyPicked(guesses, locationToStrike)) {
-                console.log("You have already picked this location. Miss!\n");
+                console.log(alreadyPickedMess);
             } else {
-                if (shipAtLocation(fleet, locationToStrike)) {
+                if (shipAtLocation(ships, locationToStrike)) {
                     guesses.push(new Strike(locationToStrike, "X"));
-                    for (let i = 0; i < fleet.length; i++) {
-                        for (let j = 0; j < fleet[i].length; j++) {
-                            if (fleet[i].includes(locationToStrike)) {
-                                fleet[i] = fleet[i].filter(coordinates => coordinates !== locationToStrike);
-                                if (fleet[i].length === 0) {
-                                    console.log(`Hit. You have sunk a battleship. ${fleet.length - 1} ship(s) remaining.\n`);
-                                } else {
-                                    console.log("You have hit a battleship!\n");
-                                }
+                    loop1: for (let i = 0; i < ships.length; i++) {
+                        for (let j = 0; j < ships[i].length; j++) {
+                            if (ships[i].includes(locationToStrike)) {
+                                ships[i] = ships[i].filter(coordinates => coordinates !== locationToStrike);
+                                ships[i].length === 0 ? console.log(sunkBattleshipMess) : console.log(hitMess);
+                                break loop1;
                             }
                         }
                     }
-                    fleet = fleet.filter(ship => ship.length > 0);
-                    if (fleet.length === 0) {
+                    ships = ships.filter(ship => ship.length > 0);
+                    if (ships.length === 0) {
                         allBattleshipsDestroyed = true;
                     }
                 } else {
                     guesses.push(new Strike(locationToStrike, "O"));
-                    console.log("You have missed!\n");
+                    console.log(missMess);
                 }
             }
-            console.log(fleet);
-            console.log(utils.printGrid(guesses));
+            if (myTurn) {
+                computerShips = ships;
+                myGuesses = guesses;
+            } else {
+                myShips = ships;
+                computerGuesses = guesses;
+            }
+            if (myTurn) {
+                console.log("Computer'ships", computerShips);
+                console.log(utils.printGrid(myGuesses));
+            }
         }
 
-        playAgain = rs.keyInYNStrict(
-            "You have destroyed all battleships. Would you like to play again? Y/N ", {
-                guide: false,
-                caseSensitive: false,
-            }
-        );
+        const playAgainMess = myTurn ?
+            "You have destroyed all battleships. YOU WIN ! Would you like to play again? Y/N " :
+            "The computer has destroyed all your battleships. YOU LOSE ! Would you like to play again? Y/N ";
+
+        playAgain = rs.keyInYNStrict(playAgainMess, {
+            guide: false,
+            caseSensitive: false,
+        });
     }
 }
 
