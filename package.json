@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "keypress": "^0.2.1",
+    "readline-sync": "^1.4.10"
+  },
+  "devDependencies": {
+    "press-any-key": "^0.1.1"
+  }
+}
